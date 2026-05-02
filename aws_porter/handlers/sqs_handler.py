@@ -12,7 +12,10 @@ class SQSHandler(BaseHandler):
 
     def discover(self) -> List[dict]:
         client = self.session_manager.get_source_client("sqs")
-        urls = client.list_queues().get("QueueUrls", [])
+        paginator = client.get_paginator("list_queues")
+        urls = []
+        for page in paginator.paginate():
+            urls.extend(page.get("QueueUrls", []))
         return [{"QueueUrl": url, "Name": url.split("/")[-1]} for url in urls]
 
     def get_dependencies(self, resource: dict) -> List[Tuple]:

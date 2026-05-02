@@ -12,7 +12,11 @@ class APIGatewayHandler(BaseHandler):
 
     def discover(self) -> List[dict]:
         client = self.session_manager.get_source_client("apigateway")
-        return client.get_rest_apis()["items"]
+        paginator = client.get_paginator("get_rest_apis")
+        apis = []
+        for page in paginator.paginate():
+            apis.extend(page.get("items", []))
+        return apis
 
     def get_dependencies(self, resource: dict) -> List[Tuple]:
         return []

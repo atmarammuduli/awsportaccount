@@ -12,7 +12,11 @@ class NATGatewayHandler(BaseHandler):
 
     def discover(self) -> List[dict]:
         client = self.session_manager.get_source_client("ec2")
-        return client.describe_nat_gateways()["NatGateways"]
+        paginator = client.get_paginator("describe_nat_gateways")
+        ngws = []
+        for page in paginator.paginate():
+            ngws.extend(page["NatGateways"])
+        return ngws
 
     def get_dependencies(self, resource: dict) -> List[Tuple]:
         return [("ec2", "Subnet", resource["SubnetId"])]

@@ -12,6 +12,7 @@ class MigrationEngine:
         self.session_manager = session_manager
         self.registry = MigrationRegistry()
         self.handlers: List[BaseHandler] = []
+        self._discovery_cache = {}
 
     def register_handler(self, handler_class: Type[BaseHandler]):
         handler = handler_class(self.session_manager, self.registry)
@@ -21,7 +22,7 @@ class MigrationEngine:
         console.print("[bold cyan]Discovery Phase[/bold cyan]")
         all_resources = []
         for handler in self.handlers:
-            resources = handler.discover()
+            resources = self._discover_cached(handler)
             for res in resources:
                 all_resources.append((handler, res))
 
@@ -37,6 +38,12 @@ class MigrationEngine:
             if Confirm.ask(f"Port {handler.resource_type} [bold]{res_name}[/bold] ({res_id})?"):
                 self._port_with_dependencies(handler, res)
 
+    def _discover_cached(self, handler: BaseHandler):
+        key = (handler.service_name, handler.resource_type)
+        if key not in self._discovery_cache:
+            self._discovery_cache[key] = handler.discover()
+        return self._discovery_cache[key]
+
     def _port_with_dependencies(self, handler: BaseHandler, resource: dict):
         res_id = handler.get_id(resource)
 
@@ -47,20 +54,20 @@ class MigrationEngine:
         deps = handler.get_dependencies(resource)
         for dep_service, dep_type, dep_id in deps:
             if not self.registry.has_resource(dep_service, dep_type, dep_id):
+                # Self-reference check: if it's the same resource type and ID, we can't port it before itself
+                if dep_service == handler.service_name and dep_type == handler.resource_type and dep_id == res_id:
+                    continue
+
                 console.print(f"  [yellow]Dependency found: {dep_type} ({dep_id})[/yellow]")
-                # Find handler for dependency
                 dep_handler = next((h for h in self.handlers if h.service_name == dep_service and h.resource_type == dep_type), None)
                 if dep_handler:
-                    # Find the actual resource object for this dependency
-                    dep_resources = dep_handler.discover()
+                    dep_resources = self._discover_cached(dep_handler)
                     dep_res = next((r for r in dep_resources if dep_handler.get_id(r) == dep_id), None)
                     if dep_res:
                         if Confirm.ask(f"  Port dependency {dep_type} [bold]{dep_handler.get_name(dep_res)}[/bold]?"):
                             self._port_with_dependencies(dep_handler, dep_res)
                     else:
                         console.print(f"  [red]Warning: Could not find configuration for dependency {dep_id}[/red]")
-                else:
-                    console.print(f"  [red]Warning: No handler for dependency {dep_service}/{dep_type}[/red]")
 
         # Port the resource
         try:

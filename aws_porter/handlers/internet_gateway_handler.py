@@ -12,7 +12,11 @@ class InternetGatewayHandler(BaseHandler):
 
     def discover(self) -> List[dict]:
         client = self.session_manager.get_source_client("ec2")
-        return client.describe_internet_gateways()["InternetGateways"]
+        paginator = client.get_paginator("describe_internet_gateways")
+        igws = []
+        for page in paginator.paginate():
+            igws.extend(page["InternetGateways"])
+        return igws
 
     def get_dependencies(self, resource: dict) -> List[Tuple]:
         # IGs are attached to VPCs, but created independently

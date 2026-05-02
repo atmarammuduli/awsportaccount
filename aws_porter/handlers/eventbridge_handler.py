@@ -12,7 +12,11 @@ class EventBridgeHandler(BaseHandler):
 
     def discover(self) -> List[dict]:
         client = self.session_manager.get_source_client("events")
-        return client.list_rules()["Rules"]
+        paginator = client.get_paginator("list_rules")
+        rules = []
+        for page in paginator.paginate():
+            rules.extend(page["Rules"])
+        return rules
 
     def get_dependencies(self, resource: dict) -> List[Tuple]:
         return []

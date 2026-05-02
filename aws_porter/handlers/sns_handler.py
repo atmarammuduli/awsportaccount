@@ -12,9 +12,12 @@ class SNSHandler(BaseHandler):
 
     def discover(self) -> List[dict]:
         client = self.session_manager.get_source_client("sns")
-        topics = client.list_topics()["Topics"]
-        for topic in topics:
-            topic["Name"] = topic["TopicArn"].split(":")[-1]
+        paginator = client.get_paginator("list_topics")
+        topics = []
+        for page in paginator.paginate():
+            for topic in page["Topics"]:
+                topic["Name"] = topic["TopicArn"].split(":")[-1]
+                topics.append(topic)
         return topics
 
     def get_dependencies(self, resource: dict) -> List[Tuple]:

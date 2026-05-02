@@ -12,7 +12,11 @@ class SubnetHandler(BaseHandler):
 
     def discover(self) -> List[dict]:
         client = self.session_manager.get_source_client("ec2")
-        return client.describe_subnets()["Subnets"]
+        paginator = client.get_paginator("describe_subnets")
+        subnets = []
+        for page in paginator.paginate():
+            subnets.extend(page["Subnets"])
+        return subnets
 
     def get_dependencies(self, resource: dict) -> List[tuple]:
         return [("ec2", "VPC", resource["VpcId"])]

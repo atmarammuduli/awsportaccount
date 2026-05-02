@@ -12,7 +12,11 @@ class RouteTableHandler(BaseHandler):
 
     def discover(self) -> List[dict]:
         client = self.session_manager.get_source_client("ec2")
-        return client.describe_route_tables()["RouteTables"]
+        paginator = client.get_paginator("describe_route_tables")
+        rts = []
+        for page in paginator.paginate():
+            rts.extend(page["RouteTables"])
+        return rts
 
     def get_dependencies(self, resource: dict) -> List[Tuple]:
         return [("ec2", "VPC", resource["VpcId"])]

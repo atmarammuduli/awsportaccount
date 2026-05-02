@@ -9,7 +9,9 @@ def test_vpc_handler_discover():
     registry = MagicMock(spec=MigrationRegistry)
 
     source_client = MagicMock()
-    source_client.describe_vpcs.return_value = {"Vpcs": [{"VpcId": "vpc-123"}]}
+    paginator = MagicMock()
+    paginator.paginate.return_value = [{"Vpcs": [{"VpcId": "vpc-123"}]}]
+    source_client.get_paginator.return_value = paginator
     session_mgr.get_source_client.return_value = source_client
 
     handler = VPCHandler(session_mgr, registry)

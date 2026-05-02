@@ -13,7 +13,11 @@ class VPCHandler(BaseHandler):
 
     def discover(self) -> List[dict]:
         client = self.session_manager.get_source_client("ec2")
-        return client.describe_vpcs()["Vpcs"]
+        paginator = client.get_paginator("describe_vpcs")
+        vpcs = []
+        for page in paginator.paginate():
+            vpcs.extend(page["Vpcs"])
+        return vpcs
 
     def get_dependencies(self, resource: dict) -> List[tuple]:
         return [] # VPCs usually don't depend on other high-level resources we port

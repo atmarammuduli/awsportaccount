@@ -23,6 +23,9 @@ def port(
         target_region = source_region
 
     console.print(f"[bold green]Starting AWS Porter[/bold green]")
+    from aws_porter.core.logger import setup_logging
+    logger = setup_logging()
+    logger.info("Starting AWS Porter")
 
     from aws_porter.core.session_manager import SessionManager
     from aws_porter.core.engine import MigrationEngine
@@ -38,6 +41,10 @@ def port(
     from aws_porter.handlers.sns_handler import SNSHandler
     from aws_porter.handlers.eventbridge_handler import EventBridgeHandler
     from aws_porter.handlers.nat_gateway_handler import NATGatewayHandler
+    from aws_porter.handlers.efs_handler import EFSHandler
+    from aws_porter.handlers.rds_handler import RDSHandler
+    from aws_porter.handlers.launch_template_handler import LaunchTemplateHandler
+    from aws_porter.handlers.db_subnet_group_handler import DBSubnetGroupHandler
 
     session_mgr = SessionManager(
         source_profile=source_profile,
@@ -64,6 +71,10 @@ def port(
     engine.register_handler(APIGatewayHandler)
     engine.register_handler(EventBridgeHandler)
     engine.register_handler(NATGatewayHandler)
+    engine.register_handler(EFSHandler)
+    engine.register_handler(DBSubnetGroupHandler)
+    engine.register_handler(RDSHandler)
+    engine.register_handler(LaunchTemplateHandler)
 
     try:
         engine.run_interactive()

@@ -12,8 +12,12 @@ class DynamoDBHandler(BaseHandler):
 
     def discover(self) -> List[dict]:
         client = self.session_manager.get_source_client("dynamodb")
-        tables = client.list_tables()["TableNames"]
-        return [{"TableName": name} for name in tables]
+        paginator = client.get_paginator("list_tables")
+        tables = []
+        for page in paginator.paginate():
+            for name in page["TableNames"]:
+                tables.append({"TableName": name})
+        return tables
 
     def get_dependencies(self, resource: dict) -> List[Tuple]:
         return []

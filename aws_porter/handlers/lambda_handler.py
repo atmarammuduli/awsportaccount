@@ -13,7 +13,11 @@ class LambdaHandler(BaseHandler):
 
     def discover(self) -> List[dict]:
         client = self.session_manager.get_source_client("lambda")
-        return client.list_functions()["Functions"]
+        paginator = client.get_paginator("list_functions")
+        functions = []
+        for page in paginator.paginate():
+            functions.extend(page["Functions"])
+        return functions
 
     def get_dependencies(self, resource: dict) -> List[Tuple]:
         deps = []

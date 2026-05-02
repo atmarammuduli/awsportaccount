@@ -41,6 +41,9 @@ class SecurityGroupHandler(BaseHandler):
         )
         sg_id = response["GroupId"]
 
+        # ADD TO REGISTRY EARLY to support self-references in rules
+        self.registry.add_mapping(self.service_name, self.resource_type, resource["GroupId"], sg_id)
+
         # Port Inbound Rules
         if "IpPermissions" in resource and resource["IpPermissions"]:
             self._port_rules(target_client, sg_id, resource["IpPermissions"], "ingress")

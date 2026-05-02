@@ -23,8 +23,15 @@ class S3Handler(BaseHandler):
         target_client = self.session_manager.get_target_client("s3")
         source_bucket = resource["Name"]
 
+        # Check if identical exists
+        try:
+            target_client.head_bucket(Bucket=source_bucket)
+            exists = True
+        except:
+            exists = False
+
         target_account_id = self.session_manager.get_target_account_id()
-        suggested_name = f"{source_bucket}-{target_account_id}"
+        suggested_name = source_bucket if not exists else f"{source_bucket}-{target_account_id}"
 
         target_bucket = Prompt.ask(f"Enter target bucket name for [bold]{source_bucket}[/bold]", default=suggested_name)
 

@@ -13,7 +13,11 @@ class IAMRoleHandler(BaseHandler):
 
     def discover(self) -> List[dict]:
         client = self.session_manager.get_source_client("iam")
-        return client.list_roles()["Roles"]
+        paginator = client.get_paginator("list_roles")
+        roles = []
+        for page in paginator.paginate():
+            roles.extend(page["Roles"])
+        return roles
 
     def get_dependencies(self, resource: dict) -> List[Tuple]:
         return [] # Roles might depend on other roles in policies, but not strictly for creation
