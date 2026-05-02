@@ -23,10 +23,16 @@ class APIGatewayHandler(BaseHandler):
 
         api_id = resource["id"]
 
+        # Find a stage to export from
+        stages = source_client.get_stages(restApiId=api_id).get("item", [])
+        if not stages:
+             raise Exception(f"No stages found for API {api_id}, cannot export.")
+        stage_name = stages[0]["stageName"]
+
         # Best way to port API Gateway is using Export/Import (OpenAPI)
         export = source_client.get_export(
             restApiId=api_id,
-            stageName="prod", # Assumption
+            stageName=stage_name,
             exportType="oas30",
             parameters={"extensions": "integrations"}
         )

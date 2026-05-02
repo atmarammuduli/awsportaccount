@@ -39,31 +39,46 @@ fi
 echo "[3/3] Ready to start porting."
 echo ""
 
-# Prompt for AWS details if not provided as arguments
-if [ -z "$1" ] || [ -z "$2" ]; then
+echo "Choose authentication method:"
+echo "1) AWS Profiles (recommended)"
+echo "2) Access Key / Secret Key"
+read -p "Selection [1]: " AUTH_METHOD
+AUTH_METHOD=${AUTH_METHOD:-1}
+
+if [ "$AUTH_METHOD" == "1" ]; then
     read -p "Source AWS Profile: " SOURCE_PROFILE
     read -p "Target AWS Profile: " TARGET_PROFILE
     read -p "Source AWS Region [us-east-1]: " SOURCE_REGION
     SOURCE_REGION=${SOURCE_REGION:-us-east-1}
     read -p "Target AWS Region [$SOURCE_REGION]: " TARGET_REGION
     TARGET_REGION=${TARGET_REGION:-$SOURCE_REGION}
+
+    python -m aws_porter.main port \
+        --source-profile "$SOURCE_PROFILE" \
+        --target-profile "$TARGET_PROFILE" \
+        --source-region "$SOURCE_REGION" \
+        --target-region "$TARGET_REGION"
 else
-    SOURCE_PROFILE=$1
-    TARGET_PROFILE=$2
-    SOURCE_REGION=${3:-us-east-1}
-    TARGET_REGION=${4:-$SOURCE_REGION}
+    read -p "Source Access Key: " SOURCE_AK
+    read -sp "Source Secret Key: " SOURCE_SK
+    echo ""
+    read -p "Target Access Key: " TARGET_AK
+    read -sp "Target Secret Key: " TARGET_SK
+    echo ""
+    read -p "Source AWS Region [us-east-1]: " SOURCE_REGION
+    SOURCE_REGION=${SOURCE_REGION:-us-east-1}
+    read -p "Target AWS Region [$SOURCE_REGION]: " TARGET_REGION
+    TARGET_REGION=${TARGET_REGION:-$SOURCE_REGION}
+
+    export SOURCE_AWS_ACCESS_KEY_ID="$SOURCE_AK"
+    export SOURCE_AWS_SECRET_ACCESS_KEY="$SOURCE_SK"
+    export TARGET_AWS_ACCESS_KEY_ID="$TARGET_AK"
+    export TARGET_AWS_SECRET_ACCESS_KEY="$TARGET_SK"
+
+    python -m aws_porter.main port \
+        --source-region "$SOURCE_REGION" \
+        --target-region "$TARGET_REGION"
 fi
-
-echo ""
-echo "Running: python -m aws_porter.main port --source-profile $SOURCE_PROFILE --target-profile $TARGET_PROFILE --source-region $SOURCE_REGION --target-region $TARGET_REGION"
-echo ""
-
-# Run the tool
-python -m aws_porter.main port \
-    --source-profile "$SOURCE_PROFILE" \
-    --target-profile "$TARGET_PROFILE" \
-    --source-region "$SOURCE_REGION" \
-    --target-region "$TARGET_REGION"
 
 DEACTIVATE_VENV="deactivate"
 $DEACTIVATE_VENV

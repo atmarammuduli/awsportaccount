@@ -26,9 +26,13 @@ class VPCHandler(BaseHandler):
         existing = self._find_existing_by_name(target_client, name)
 
         if existing:
-            if overwrite or Confirm.ask(f"VPC [bold]{name}[/bold] already exists. Delete and recreate?"):
+            if overwrite or Confirm.ask(f"VPC [bold]{name}[/bold] already exists. Delete and recreate? (Note: will fail if VPC is not empty)"):
                 # Handle dependencies before deleting
-                target_client.delete_vpc(VpcId=existing["VpcId"])
+                try:
+                    target_client.delete_vpc(VpcId=existing["VpcId"])
+                except Exception as e:
+                    print(f"  [red]Error deleting VPC: {e}. Please empty the VPC manually or choose a different name.[/red]")
+                    return existing["VpcId"]
             else:
                 return existing["VpcId"]
 

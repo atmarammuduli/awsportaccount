@@ -1,4 +1,5 @@
 import typer
+from typing import Optional
 from rich.console import Console
 
 app = typer.Typer(help="AWS Porter: Clone AWS resources between accounts.")
@@ -6,10 +7,14 @@ console = Console()
 
 @app.command()
 def port(
-    source_profile: str = typer.Option(..., "--source-profile", help="AWS profile for the source account"),
-    target_profile: str = typer.Option(..., "--target-profile", help="AWS profile for the target account"),
+    source_profile: Optional[str] = typer.Option(None, "--source-profile", help="AWS profile for the source account"),
+    target_profile: Optional[str] = typer.Option(None, "--target-profile", help="AWS profile for the target account"),
     source_region: str = typer.Option("us-east-1", "--source-region", help="Source AWS region"),
     target_region: str = typer.Option(None, "--target-region", help="Target AWS region (defaults to source region)"),
+    source_access_key: Optional[str] = typer.Option(None, envvar="SOURCE_AWS_ACCESS_KEY_ID"),
+    source_secret_key: Optional[str] = typer.Option(None, envvar="SOURCE_AWS_SECRET_ACCESS_KEY"),
+    target_access_key: Optional[str] = typer.Option(None, envvar="TARGET_AWS_ACCESS_KEY_ID"),
+    target_secret_key: Optional[str] = typer.Option(None, envvar="TARGET_AWS_SECRET_ACCESS_KEY"),
 ):
     """
     Interactively port AWS resources from source to target account.
@@ -18,8 +23,6 @@ def port(
         target_region = source_region
 
     console.print(f"[bold green]Starting AWS Porter[/bold green]")
-    console.print(f"Source: [bold]{source_profile}[/bold] ({source_region})")
-    console.print(f"Target: [bold]{target_profile}[/bold] ({target_region})")
 
     from aws_porter.core.session_manager import SessionManager
     from aws_porter.core.engine import MigrationEngine
@@ -34,8 +37,18 @@ def port(
     from aws_porter.handlers.sqs_handler import SQSHandler
     from aws_porter.handlers.sns_handler import SNSHandler
     from aws_porter.handlers.eventbridge_handler import EventBridgeHandler
+    from aws_porter.handlers.nat_gateway_handler import NATGatewayHandler
 
-    session_mgr = SessionManager(source_profile, target_profile, source_region, target_region)
+    session_mgr = SessionManager(
+        source_profile=source_profile,
+        target_profile=target_profile,
+        source_region=source_region,
+        target_region=target_region,
+        source_access_key=source_access_key,
+        source_secret_key=source_secret_key,
+        target_access_key=target_access_key,
+        target_secret_key=target_secret_key
+    )
     engine = MigrationEngine(session_mgr)
 
     # Register handlers in dependency order (mostly)
@@ -50,6 +63,7 @@ def port(
     engine.register_handler(LambdaHandler)
     engine.register_handler(APIGatewayHandler)
     engine.register_handler(EventBridgeHandler)
+    engine.register_handler(NATGatewayHandler)
 
     try:
         engine.run_interactive()

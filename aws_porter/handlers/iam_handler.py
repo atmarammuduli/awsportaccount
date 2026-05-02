@@ -40,7 +40,13 @@ class IAMRoleHandler(BaseHandler):
             source_client = self.session_manager.get_source_client("iam")
             attached = source_client.list_attached_role_policies(RoleName=resource["RoleName"])["AttachedPolicies"]
             for policy in attached:
-                target_client.attach_role_policy(RoleName=role_name, PolicyArn=policy["PolicyArn"])
+                arn = policy["PolicyArn"]
+                if ":iam::aws:policy/" in arn:
+                    # AWS Managed Policy, can be attached directly
+                    target_client.attach_role_policy(RoleName=role_name, PolicyArn=arn)
+                else:
+                    # Customer Managed Policy - needs to be created or mapped
+                    print(f"  [yellow]Note: Customer Managed Policy {policy['PolicyName']} skipped (not implemented)[/yellow]")
 
             # Port Inline Policies
             inline = source_client.list_role_policies(RoleName=resource["RoleName"])["PolicyNames"]
